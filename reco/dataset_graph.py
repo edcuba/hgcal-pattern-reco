@@ -193,7 +193,6 @@ class TracksterGraph(InMemoryDataset):
             N_FILES=None,
             radius=10,
             pileup=False,
-            score_threshold=0.2,
             bigT_e_th=10,
             collection="SC",
             link_prediction=False,
@@ -207,7 +206,6 @@ class TracksterGraph(InMemoryDataset):
         self.bigT_e_th = bigT_e_th
         self.collection = collection
         self.link_prediction = link_prediction
-        self.SCORE_THRESHOLD = score_threshold
         super(TracksterGraph, self).__init__(root_dir, transform, pre_transform, pre_filter)
         self.data, self.slices = torch.load(self.processed_paths[0])
 
@@ -228,7 +226,6 @@ class TracksterGraph(InMemoryDataset):
             self.name,
             f"f{self.N_FILES or len(self.raw_file_names)}",
             f"r{self.RADIUS}",
-            f"s{self.SCORE_THRESHOLD}",
             f"eth{self.bigT_e_th}"
         ]
         if self.link_prediction:
@@ -246,7 +243,6 @@ class TracksterGraph(InMemoryDataset):
             cluster_data, trackster_data, _, assoc_data = get_event_data(
                 source,
                 collection=self.collection,
-                pileup=self.pileup,
             )
             for eid in range(len(trackster_data["barycenter_x"])):
                 data_list += get_event_graph(
