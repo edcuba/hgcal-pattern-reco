@@ -25,7 +25,11 @@ def get_major_PU_tracksters(
     return big
 
 
-def get_bigTs(trackster_data, assoc_data, eid, pileup=False, energy_th=50, collection="SC"):
+def get_bigTs(trackster_data, assoc_data, eid, pileup=True, energy_th=10, collection="SC"):
+    """
+    Select tracksters above a given energy threshold
+    """
+
     if pileup:
         # get associations data
         reco2sim_sharedE = assoc_data[f"tsCLUE3D_recoToSim_{collection}_sharedE"][eid]

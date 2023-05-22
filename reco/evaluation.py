@@ -102,6 +102,14 @@ def bcubed(vertices, t_vertices, i2a, i2b, e_map):
 
 
 def evaluate(nhits, all_t_indexes, all_st_indexes, t_energy, st_energy, all_v_multi, all_sv_multi, f_min=0, beta=0.5, min_hits=1):
+    """
+    Core evaluation routine
+
+    1. Select all layerclusters with more than 1 hit
+    2. Get mapping between layerclusters and (sim)tracksters
+    3. Get the fraction of energy for each layerclusters and trackster
+    4. Compute B-CUBED precision and recall
+    """
 
     # prepare RECO indexes
     lc_over_1_hit = ak.Array([nhits[t] > min_hits for t in all_t_indexes])
@@ -129,67 +137,26 @@ def evaluate(nhits, all_t_indexes, all_st_indexes, t_energy, st_energy, all_v_mu
     return precision, recall, f_score(precision, recall, beta=beta)
 
 
-def evaluate_remapped(nhits, t_indexes, st_indexes, t_energy, st_energy, v_multi, sv_multi, labels, f_min=0):
-    ri = remap_arrays_by_label(t_indexes, labels)
-    re = remap_arrays_by_label(t_energy, labels)
-    rm = remap_arrays_by_label(v_multi, labels)
-    return evaluate(nhits, ri, st_indexes, re, st_energy, rm, sv_multi, f_min=f_min)
-
-
-def baseline_evaluation(callable_fn, cluster_data, trackster_data, simtrackster_data, max_events=None, **kwargs):
-    results = []
-    n_events = len(trackster_data["vertices_indexes"])
-    max_events = min(n_events, max_events) if max_events else n_events
-
-    for eid in range(max_events):
-
-        t_indexes = trackster_data["vertices_indexes"][eid]
-        t_multiplicity = trackster_data["vertices_multiplicity"][eid]
-
-        # simulation
-        st_indexes = simtrackster_data["stsSC_vertices_indexes"][eid]
-        st_multiplicity = simtrackster_data["stsSC_vertices_multiplicity"][eid]
-
-        clusters_e = cluster_data["energy"][eid]
-        nhits = cluster_data["cluster_number_of_hits"][eid]
-
-        t_energy = ak.Array([clusters_e[indices] for indices in t_indexes])
-        st_energy = ak.Array([clusters_e[indices] for indices in st_indexes])
-
-        labels = callable_fn(trackster_data, eid, **kwargs)
-
-        results.append((
-            *evaluate_remapped(
-                nhits,
-                t_indexes,
-                st_indexes,
-                t_energy,
-                st_energy,
-                t_multiplicity,
-                st_multiplicity,
-                labels,
-            ),
-            max(labels) + 1,
-        ))
-        results
-    return results
-
-
 def eval_graph_lp(trackster_data, eid, dX, model, pileup=False, decision_th=0.5):
+    """
+    Evaluation routine for graph-based link prediction
+    """
 
     pairs = []
     preds = []
     truths = []
 
+    # for each event sub-graph
     for sample in dX:
 
         nidx = sample.node_index
 
+        # compute predicted edges, retrieve the ground truth, and compose pairs
         preds += model(sample.x, sample.edge_index).reshape(-1).tolist()
         truths += sample.y.tolist()
         pairs += [(nidx[a].item(), nidx[b].item()) for a, b in sample.edge_index.T]
 
-    # rebuild the event
+    # rebuild the event using the pairs
     reco = remap_tracksters(trackster_data, pairs, preds, eid, decision_th=decision_th, pileup=pileup, allow_multiple=True)
     target = remap_tracksters(trackster_data, pairs, truths, eid, decision_th=decision_th, pileup=pileup, allow_multiple=False)
     p_list = list(set(b for _, b in pairs))
@@ -197,9 +164,13 @@ def eval_graph_lp(trackster_data, eid, dX, model, pileup=False, decision_th=0.5)
 
 
 def eval_graph_fb(trackster_data, eid, dX, model, pileup=False, multiparticle=False, decision_th=0.5):
-    # this is the foreground-background case
-    # we only got one particle, so whatever foregrounds are overlapping, we join them
-    # pick the sample with the highest energy
+    """
+    Evaluation routine for the node classification
+
+    This is the foreground-background case
+    Whatever foregrounds are overlapping by >50%, we join them
+    Pick the sample with the highest energy
+    """
     max_e_sample_idx = -1
     max_e_sample_e = -1
 
@@ -211,6 +182,7 @@ def eval_graph_fb(trackster_data, eid, dX, model, pileup=False, multiparticle=Fa
 
     eng = trackster_data["raw_energy"][eid]
 
+    # compute foreground/background predictions for each event sub-graph
     for s_idx, sample in enumerate(dX):
         bigT_idx = torch.argmax(sample.x[:, 0]).item()
         p_list.append(sample.node_index[bigT_idx].item())
@@ -228,6 +200,7 @@ def eval_graph_fb(trackster_data, eid, dX, model, pileup=False, multiparticle=Fa
     reco_tracksters = []
     target_tracksters = []
 
+    # merging the foregrounds is sadly not trivial
     if pileup or multiparticle:
         for p, t, n in zip(preds, truths, nodes):
             reco_fg = n[p >= decision_th].tolist()
@@ -282,6 +255,7 @@ def eval_graph_fb(trackster_data, eid, dX, model, pileup=False, multiparticle=Fa
                     target_tracksters.append(list(target_fg_set))
 
     else:
+        # two particles case is easy
         p = preds[max_e_sample_idx]
         t = truths[max_e_sample_idx]
         n = nodes[max_e_sample_idx]
@@ -319,7 +293,8 @@ def model_evaluation(
     multiparticle=False,
 ):
     """
-    Evaluation must be unbalanced
+    Evaluation routine used to assess the model performance and compare against the baselines.
+    Evaluation must be unbalanced (true distribution)
     """
     model.eval()
 

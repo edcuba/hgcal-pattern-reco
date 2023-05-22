@@ -27,10 +27,17 @@ def get_event_pairs(
         assoc_data,
         eid,
         radius,
-        pileup=False,
-        bigT_e_th=50,
+        pileup=True,
+        bigT_e_th=10,
         collection="SC",
     ):
+    """
+    Pair generation method
+    - load event data
+    - select tracksters above bigT_e_th GeV (overlapping with a simtrackster if pileup=True)
+    - find candidate tracksters for each selected tracksters
+    - extract features, create trackser pairs and compute joint scores
+    """
 
     dataset_X = []
     dataset_Y = []
@@ -53,6 +60,7 @@ def get_event_pairs(
     # add id probabilities
     id_probs = trackster_data["id_probabilities"][eid].tolist()
 
+    # select tracksters for smoothing
     bigTs = get_bigTs(
         trackster_data,
         assoc_data,
@@ -62,12 +70,15 @@ def get_event_pairs(
         collection=collection
     )
 
+    # preload features
     trackster_features = list([
         trackster_data[k][eid] for k in FEATURE_KEYS
     ])
 
+    # for each selected trackster
     for bigT in bigTs:
 
+        # get the bounds on the trackster axis
         big_minP, big_maxP = get_min_max_z_points(
             vertices_x[bigT],
             vertices_y[bigT],
@@ -81,10 +92,11 @@ def get_event_pairs(
         # figure out which simtrackster it is
         bigT_simT_idx = reco2sim_idx[bigT][bigT_best_score_idx]
 
+        # find candidate tracksters
         in_cone = get_neighborhood(trackster_data, vertices_z, eid, radius, bigT)
 
+        # for each candidate trackster
         for recoTxId, distance in in_cone:
-
             if recoTxId == bigT:
                 # do not connect to itself
                 continue
@@ -115,6 +127,7 @@ def get_event_pairs(
 
             # find out the index of the simpartice we are looking for
             recoTx_bigT_simT_idx = np.nonzero(reco2sim_idx[recoTxId] == bigT_simT_idx)[0][0]
+
             # get the score for the given simparticle and compute the score
             label = (1 - bigT_best_score) * (1 - reco2sim_score[recoTxId][recoTx_bigT_simT_idx])
 
@@ -126,7 +139,17 @@ def get_event_pairs(
 
 
 class TracksterPairs(Dataset):
-    # output is about 250kb per file
+    """
+    PyTorch dataset wrapper for the pairwise case.
+    The candidate pairs are serialized into a binary dataset file using `torch.save`.
+
+    __init__ args:
+        transform:  PyTorch dataset transformations to be applied on-fly
+        radius:     cylinder radius around the trackster axis
+        N_FILES:    number of ROOT files to process
+        bigT_e_th:  energy threshold in GeV applied for trackster selection
+        collection: root collection name to use (SC or CP)
+    """
 
     def __init__(
             self,
@@ -136,15 +159,13 @@ class TracksterPairs(Dataset):
             transform=None,
             N_FILES=None,
             radius=10,
-            score_threshold=0.2,
-            pileup=False,
-            bigT_e_th=40,
+            pileup=True,
+            bigT_e_th=10,
             collection="SC",
         ):
         self.name = name
         self.N_FILES = N_FILES
         self.RADIUS = radius
-        self.SCORE_THRESHOLD = score_threshold
         self.raw_data_path = raw_data_path
         self.root_dir = root_dir
         self.transform = transform
@@ -179,7 +200,6 @@ class TracksterPairs(Dataset):
             self.name,
             f"f{self.N_FILES or len(self.raw_file_names)}",
             f"r{self.RADIUS}",
-            f"s{self.SCORE_THRESHOLD}",
             f"eth{self.bigT_e_th}"
         ]
         return list([f"TracksterPairs{'PU' if self.pileup else ''}_{'_'.join(infos)}.pt"])
@@ -189,9 +209,14 @@ class TracksterPairs(Dataset):
         return [path.join(self.root_dir, fn) for fn in self.processed_file_names]
 
     def process(self):
+        """
+        Retrieve Candidate Pairs for all events in all root files
+        Serialize Candidate Pairs into a PyTorch dataset file
+        """
         dataset_X = []
         dataset_Y = []
 
+        # make sure there is enough files to process
         assert len(self.raw_file_names) == self.N_FILES
 
         for source in self.raw_file_names:
@@ -199,7 +224,6 @@ class TracksterPairs(Dataset):
             cluster_data, trackster_data, _, assoc_data = get_event_data(
                 source,
                 collection=self.collection,
-                pileup=self.pileup
             )
             for eid in range(len(trackster_data["barycenter_x"])):
                 dX, dY, _ = get_event_pairs(
@@ -227,7 +251,6 @@ class TracksterPairs(Dataset):
         infos = [
             f"len={len(self)}",
             f"radius={self.RADIUS}",
-            f"score_threshold={self.SCORE_THRESHOLD}",
             f"bigT_e_th={self.bigT_e_th}",
         ]
         return f"<TracksterPairs {' '.join(infos)}>"

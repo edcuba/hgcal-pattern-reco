@@ -33,21 +33,7 @@ FEATURE_KEYS = [
 ]
 
 
-def clusters_by_indices(cluster_data, indices, eid):
-    clusters_x = cluster_data["position_x"][eid]
-    clusters_y = cluster_data["position_y"][eid]
-    clusters_z = cluster_data["position_z"][eid]
-    clusters_e = cluster_data["energy"][eid]
-
-    t_x = ak.Array([clusters_x[indices] for indices in indices])
-    t_y = ak.Array([clusters_y[indices] for indices in indices])
-    t_z = ak.Array([clusters_z[indices] for indices in indices])
-    t_e = ak.Array([clusters_e[indices] for indices in indices])
-
-    return t_x, t_y, t_z, t_e
-
-
-def get_data_arrays(clusters, tracksters, simtracksters, associations, collection="SC", pileup=False):
+def get_data_arrays(clusters, tracksters, simtracksters, associations, collection="SC"):
     trackster_data = tracksters.arrays(ARRAYS + FEATURE_KEYS + ['id_probabilities'])
     cluster_data = clusters.arrays([
         "position_x",
@@ -57,13 +43,12 @@ def get_data_arrays(clusters, tracksters, simtracksters, associations, collectio
         "cluster_number_of_hits",
     ])
 
-    p = "" if pileup else f"sts{collection}_"
     simtrackster_data = simtracksters.arrays([
-        f"{p}raw_energy",
-        f"{p}vertices_indexes",
-        f"{p}vertices_energy",
-        f"{p}vertices_multiplicity",
-        f"{p}barycenter_z"
+        f"raw_energy",
+        f"vertices_indexes",
+        f"vertices_energy",
+        f"vertices_multiplicity",
+        f"barycenter_z"
     ])
     assoc_data = associations.arrays([
         f"tsCLUE3D_recoToSim_{collection}",
@@ -81,7 +66,7 @@ def get_bary_data(trackster_data, _eid):
     ]).T
 
 
-def get_event_data(source, collection="SC", pileup=False):
+def get_event_data(source, collection="SC"):
     tracksters = uproot.open({source: "ticlNtuplizer/tracksters"})
     simtracksters = uproot.open({source: f"ticlNtuplizer/simtracksters{collection}"})
     associations = uproot.open({source: "ticlNtuplizer/associations"})
@@ -92,14 +77,4 @@ def get_event_data(source, collection="SC", pileup=False):
         simtracksters,
         associations,
         collection=collection,
-        pileup=pileup
     )
-
-
-def get_lc_data(cluster_data, trackster_data, _eid):
-    # this is not an entirely fair comparison:
-    # the LC level methods should use sim LCs not only the CLUE3D ones
-    # using sim data here is possible, but gets complicated
-    indices = trackster_data["vertices_indexes"][_eid]
-    t_x, t_y, t_z, _t_e = clusters_by_indices(cluster_data, indices, _eid)
-    return np.array([ak.flatten(t_x), ak.flatten(t_y), ak.flatten(t_z)]).T

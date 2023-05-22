@@ -66,22 +66,3 @@ class GraphClassificationLoss(nn.Module):
         batches = foreground / foreground_shared_e + background / background_shared_e
 
         return batches.sum()
-
-
-class GraphClassificationLossSingleClass(nn.Module):
-    def __init__(self):
-        super(GraphClassificationLossSingleClass, self).__init__()
-
-    def forward(self, preds, data):
-        """
-        Input is (0-1: background-foreground)
-        """
-        foreground_shared_e = 1 + batch_sum(data.e, data.batch)
-        background_shared_e = 1 + batch_sum(data.e - data.shared_e, data.batch)
-
-        foreground = batch_sum(data.shared_e * (preds - data.y)**2, data.batch)
-        background = batch_sum((data.e - data.shared_e) * ((1 - preds) - (1 - data.y))**2, data.batch)
-
-        batches = foreground / foreground_shared_e + background / background_shared_e
-
-        return batches.sum()
