@@ -130,3 +130,33 @@ def train_mlp(model, device, opt, loader, loss_obj):
         opt.step()
 
     return float(epoch_loss)
+
+
+def train_graph_classification(model, device, optimizer, loss_func, train_dl):
+    train_loss = 0.
+    model.train()
+
+    for data in train_dl:
+        data = data.to(device)
+        optimizer.zero_grad()
+
+        seg_pred = model(data.x, data.pos, data.batch)
+        loss = loss_func(seg_pred, data)
+        loss.backward()
+
+        optimizer.step()
+        train_loss += loss.item()
+
+    return train_loss
+
+
+@torch.no_grad()
+def test_graph_classification(model, device, loss_func, test_dl):
+    test_loss = 0.
+    model.eval()
+    for data in test_dl:
+        data = data.to(device)
+        seg_pred = model(data.x, data.pos, data.batch)
+        loss = loss_func(seg_pred, data)
+        test_loss += loss.item()
+    return test_loss

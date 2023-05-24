@@ -414,7 +414,7 @@ def model_evaluation(
 
         if reco_eval:
             results["n_tracksters"].append((len(si), len(target_i), len(ri)))
-            print(f"\t|S| = {len(si)} |T| = {len(target_i)} |R| = {len(ri)}")
+            print(f"\t|Sim| = {len(si)} |Target| = {len(target_i)} |Reco| = {len(ri)}")
 
     print("-----")
     for key, values in results.items():

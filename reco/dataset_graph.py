@@ -192,7 +192,7 @@ class TracksterGraph(InMemoryDataset):
             pre_filter=None,
             N_FILES=None,
             radius=10,
-            pileup=False,
+            pileup=True,
             bigT_e_th=10,
             collection="SC",
             link_prediction=False,
@@ -263,7 +263,7 @@ class TracksterGraph(InMemoryDataset):
     def __repr__(self):
         infos = [
             f"graphs={len(self)}",
-            f"nodes={len(self.data.x)}",
+            f"nodes={len(self.x)}",
             f"radius={self.RADIUS}",
             f"bigT_e_th={self.bigT_e_th}",
         ]
