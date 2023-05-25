@@ -18,7 +18,7 @@ The pipeline includes:
 
 ## Setup
 
-This work is organized as a collection of Jupyter Notebooks, one for each model, supported by a small Python library (`reco`).
+This work is organized as a collection of Jupyter Notebooks, one for each model, supported by a small Python codebase (`reco`).
 The training configuration, such as dataset routes and model parameters, are adjusted directly in the Jupyter Notebooks.
 
 The project uses a `virtualenv` setup and requires Python 3.7 or higher.
@@ -29,6 +29,13 @@ virtualenv ve                     # initialize the environment
 pip install torch                 # torch needs to be installed first
 pip install -r requirements.txt   # install the remaining project requirements
 ```
+
+### Notebooks
+
+The notebooks are organized as follows:
+- Pairwise MLP: `train_mlp_pairwise_PU.ipynb`
+- GNN for Node Classification: `train_graph_net_classification_PU.ipynb`
+- GNN for Link Prediction: `train_graph_net_link_prediction_PU.ipynb`
 
 ## Data preprocessing
 

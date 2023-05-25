@@ -152,7 +152,7 @@ def eval_graph_lp(trackster_data, eid, dX, model, pileup=False, decision_th=0.5)
         nidx = sample.node_index
 
         # compute predicted edges, retrieve the ground truth, and compose pairs
-        preds += model(sample.x, sample.edge_index).reshape(-1).tolist()
+        preds += model(sample.x, sample.pos, sample.edge_index).reshape(-1).tolist()
         truths += sample.y.tolist()
         pairs += [(nidx[a].item(), nidx[b].item()) for a, b in sample.edge_index.T]
 
@@ -285,7 +285,7 @@ def model_evaluation(
     radius=10,
     max_events=100,
     bigT_e_th=50,
-    pileup=False,
+    pileup=True,
     collection="SC",
     graph=False,
     reco_eval=True,

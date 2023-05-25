@@ -26,7 +26,7 @@ def roc_auc(model, device, test_dl, truth_threshold=0.7):
             data = data.to(device)
             ei = data.edge_index
             if ei is not None:
-                model_pred = model(data.x, ei, data.batch)
+                model_pred = model(data.x, data.pos, ei, data.batch)
             else:
                 model_pred = model(data.x, data.pos, data.batch)[:,0]
         else:
@@ -73,7 +73,7 @@ def precision_recall_curve(model, device, test_dl, beta=0.5, truth_threshold=0.7
                 ei = data.edge_index
                 if ei is not None:
                     # link prediction case
-                    model_pred = model(data.x, ei, data.batch)
+                    model_pred = model(data.x, data.pos, ei, data.batch)
                 else:
                     # node classification case - only consider the foreground class
                     model_pred = model(data.x, data.pos, data.batch)[:,0]
@@ -162,3 +162,35 @@ def test_graph_classification(model, device, loss_func, test_dl):
         loss = loss_func(seg_pred, data)
         test_loss += loss.item()
     return test_loss
+
+
+def train_link_prediction(model, device, optimizer, loss_func, train_dl):
+    train_loss = []
+    model.train()
+
+    for data in train_dl:
+        data = data.to(device)
+        optimizer.zero_grad()
+
+        seg_pred = model(data.x, data.pos, data.edge_index, batch=data.batch)
+        loss = loss_func(seg_pred, data.y)
+
+        loss.backward()
+
+        optimizer.step()
+        train_loss.append(loss.item())
+
+    return np.mean(train_loss)
+
+
+@torch.no_grad()
+def test_link_prediction(model, device, loss_func, test_dl):
+    test_loss = []
+    model.eval()
+    for data in test_dl:
+        data = data.to(device)
+        seg_pred = model(data.x, data.pos, data.edge_index, data.batch)
+        loss = loss_func(seg_pred, data.y)
+        test_loss.append(loss.item())
+
+    return np.mean(test_loss)
