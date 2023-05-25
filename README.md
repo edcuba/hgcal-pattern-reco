@@ -1,5 +1,7 @@
 # Pattern recognition for HGCAL reconstructions
 
+![](./images/donut_50e_front.png)
+
 This repository documents the AI approach to trackster smoothing for CMS HGCAL reconstructions, developed in the scope of a master's thesis in [Pattern recognition for particle shower reconstruction](https://www.merlin.uzh.ch/publication/show/23612) by [Eduard Cuba](mailto:eduard.cuba@uzh.ch). The content is distilled from the [original repository](https://github.com/edcuba/TICLPatternReco), covering data preprocessing and model training.
 
 ## Pipeline
@@ -39,6 +41,8 @@ The notebooks are organized as follows:
 
 ## Data preprocessing
 
+![](./images/multi_particle_event_links.png)
+
 The Notebooks can work directly with n-tuplized ROOT files, which need to be put into a folder defined in the notebooks (`raw_dir`).
 Before the model training, the events are extracted and stored in PyTorch dataset files. This process uses the wrapper classes `reco.dataset_pair.TracksterPairs` and `reco.dataset_graph.TracksterGraph`.
 The dataset wrappers will process a specified number of ROOT files and save the content into a PyTorch dataset in the `data_root` folder defined in the notebook.
@@ -46,6 +50,8 @@ The configuration of each dataset is embedded in the filename, and if a preproce
 If preprocessed datasets are available, the preprocessing can be skipped by placing them in the `data_root` folder.
 
 ### Feature extraction
+
+![](./images/pileup_event_neighborhood.png)
 
 During preprocessing, trackster pairs or trackster graphs are described by features.
 In the pairwise case, each pair is described by a total of 63 values [detailed here](https://github.com/edcuba/cmssw/blob/CMSSW_12_6_0_pre3_MLP_smoothing_with_ntuplizer/RecoHGCal/TICL/plugins/SmoothingAlgoByMLP.cc#L196). This includes most of the trackster features available in the ROOT files (for both tracksters), plus their pairwise distance, and z-coordinates of the first and last layer-cluster along the z-axis.
@@ -62,6 +68,15 @@ Neural network components can be integrated into CMSSW via the [ONNX format](htt
 This work compared standard feed-forward neural networks (MLP) applied to trackster pairs and graph neural networks (GNNs) applied to entire events or calorimeter regions (typically a cylinder defined around a selected trackster).
 GNNs were shown to outperform the MLP-based models by a small margin; however, due to lower complexity, only the MLP architecture was used to demonstrate [the CMSSW integration](https://github.com/edcuba/cmssw).
 The integration of GNNs is possible, yet the dynamic nearest neighbor selection used in dynamic graph convolutional networks (DGCNN) implemented via a `torch-cluster` module is not currently supported by ONNX and needs to be implemented manually in CMSSW.
+
+### MLP in CMSSW
+
+To run the MLP model in CMSSW, you need to:
+- Follow `train_mlp_pairwise_PU.ipynb`) to export the MLP model into ONNX (or use a pre-trained one from `models` folder)
+- Add the models to `RecoHGCAL/TICL/data/tf_models` and [configure the model path](https://github.com/edcuba/cmssw/blob/CMSSW_12_6_0_pre3_MLP_smoothing_with_ntuplizer/RecoHGCal/TICL/plugins/TrackstersMergeProducer.cc#L695)
+- Enable smoothing in [TrackstersMergeProducer](https://github.com/edcuba/cmssw/blob/CMSSW_12_6_0_pre3_MLP_smoothing_with_ntuplizer/RecoHGCal/TICL/plugins/TrackstersMergeProducer.cc#L655)
+- Configure the radius and energy threshold, and if there are any changes to the trackster pair features, adjust the [pre-processing and feature extraction](https://github.com/edcuba/cmssw/blob/CMSSW_12_6_0_pre3_MLP_smoothing_with_ntuplizer/RecoHGCal/TICL/plugins/SmoothingAlgoByMLP.cc#L47) in `SmoothingAlgoByMLP`
+
 
 ### Pretrained artifacts
 
