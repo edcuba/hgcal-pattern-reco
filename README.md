@@ -41,8 +41,6 @@ The notebooks are organized as follows:
 
 ## Data preprocessing
 
-![](./images/multi_particle_event_links.png)
-
 The Notebooks can work directly with n-tuplized ROOT files, which need to be put into a folder defined in the notebooks (`raw_dir`).
 Before the model training, the events are extracted and stored in PyTorch dataset files. This process uses the wrapper classes `reco.dataset_pair.TracksterPairs` and `reco.dataset_graph.TracksterGraph`.
 The dataset wrappers will process a specified number of ROOT files and save the content into a PyTorch dataset in the `data_root` folder defined in the notebook.
@@ -50,8 +48,6 @@ The configuration of each dataset is embedded in the filename, and if a preproce
 If preprocessed datasets are available, the preprocessing can be skipped by placing them in the `data_root` folder.
 
 ### Feature extraction
-
-![](./images/pileup_event_neighborhood.png)
 
 During preprocessing, trackster pairs or trackster graphs are described by features.
 In the pairwise case, each pair is described by a total of 63 values [detailed here](https://github.com/edcuba/cmssw/blob/CMSSW_12_6_0_pre3_MLP_smoothing_with_ntuplizer/RecoHGCal/TICL/plugins/SmoothingAlgoByMLP.cc#L196). This includes most of the trackster features available in the ROOT files (for both tracksters), plus their pairwise distance, and z-coordinates of the first and last layer-cluster along the z-axis.
