@@ -24,9 +24,9 @@ The training configuration, such as dataset routes and model parameters, are adj
 The project uses a `virtualenv` setup and requires Python 3.7 or higher.
 Several Python libraries are required, including `torch`, `scikit-learn`, and `uproot`. To avoid compatibility issues, use a clean virtual environment and install the requirements defined in `requirements.txt` as follows:
 ```
-virtualenv ve        	          # initialize the environment
-. ve/bin/activate   	          # enter the environment
-pip install torch	              # torch needs to be installed first
+virtualenv ve                     # initialize the environment
+. ve/bin/activate                 # enter the environment
+pip install torch                 # torch needs to be installed first
 pip install -r requirements.txt   # install the remaining project requirements
 ```
 
@@ -55,3 +55,7 @@ Neural network components can be integrated into CMSSW via the [ONNX format](htt
 This work compared standard feed-forward neural networks (MLP) applied to trackster pairs and graph neural networks (GNNs) applied to entire events or calorimeter regions (typically a cylinder defined around a selected trackster).
 GNNs were shown to outperform the MLP-based models by a small margin; however, due to lower complexity, only the MLP architecture was used to demonstrate [the CMSSW integration](https://github.com/edcuba/cmssw).
 The integration of GNNs is possible, yet the dynamic nearest neighbor selection used in dynamic graph convolutional networks (DGCNN) implemented via a `torch-cluster` module is not currently supported by ONNX and needs to be implemented manually in CMSSW.
+
+### Pretrained artifacts
+
+The directory `models` contains serialized pre-trained models for each case. Using the default configuration, you can skip the training cell in the notebooks and directly load the pre-trained models.
