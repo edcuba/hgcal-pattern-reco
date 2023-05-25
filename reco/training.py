@@ -28,7 +28,7 @@ def roc_auc(model, device, test_dl, truth_threshold=0.7):
             if ei is not None:
                 model_pred = model(data.x, ei, data.batch)
             else:
-                model_pred = model(data.x, data.batch)[:,0]
+                model_pred = model(data.x, data.pos, data.batch)[:,0]
         else:
             b, l = data
             model_pred = model(b.to(device))
@@ -72,9 +72,11 @@ def precision_recall_curve(model, device, test_dl, beta=0.5, truth_threshold=0.7
                 data = data.to(device)
                 ei = data.edge_index
                 if ei is not None:
+                    # link prediction case
                     model_pred = model(data.x, ei, data.batch)
                 else:
-                    model_pred = model(data.x, data.batch)[:,0]
+                    # node classification case - only consider the foreground class
+                    model_pred = model(data.x, data.pos, data.batch)[:,0]
             else:
                 b, l = data
                 model_pred = model(b.to(device))

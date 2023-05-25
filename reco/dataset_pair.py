@@ -143,7 +143,7 @@ class TracksterPairs(Dataset):
     PyTorch dataset wrapper for the pairwise case.
     The candidate pairs are serialized into a binary dataset file using `torch.save`.
 
-    __init__ args:
+    Args:
         transform:  PyTorch dataset transformations to be applied on-fly
         radius:     cylinder radius around the trackster axis
         N_FILES:    number of ROOT files to process

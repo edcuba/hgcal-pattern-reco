@@ -192,7 +192,7 @@ def eval_graph_fb(trackster_data, eid, dX, model, pileup=False, multiparticle=Fa
             max_e_sample_idx = s_idx
             max_e_sample_e = bigT_e
 
-        preds.append(model(sample.x).detach().cpu()[:,0].reshape(-1))
+        preds.append(model(sample.x, sample.pos).detach().cpu()[:,0].reshape(-1))
         truths.append(sample.y.detach().cpu().reshape(-1))
         nodes.append(sample.node_index.detach().cpu().reshape(-1))
 
